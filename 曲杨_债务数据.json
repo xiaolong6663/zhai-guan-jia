@@ -1,0 +1,17 @@
+[{
+  "id": "d_qy_001",
+  "name": "曲杨",
+  "title": "租赁备案 · 乾城A22-2-13西 116平",
+  "amount": 40000,
+  "rate": 5,
+  "startDate": "2026-04-01",
+  "payDay": 1,
+  "paidPeriods": 3,
+  "repaymentMode": "monthly",
+  "notes": "李帅龙出资",
+  "payments": [],
+  "commLog": [],
+  "photos": [],
+  "status": "active",
+  "createdAt": "2026-06-11T00:00:00.000Z"
+}]
