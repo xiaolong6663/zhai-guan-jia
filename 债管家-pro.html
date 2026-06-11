@@ -587,27 +587,42 @@ body{
 <!-- Settings Modal -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
-    <h3>⚙️ 云端同步设置</h3>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:12px;">
-      数据自动备份到你的 GitHub 私有 Gist，换手机也不丢失。
+    <h3>🔒 数据安全中心</h3>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">
+      数据双重保护：手机本地 + iCloud 备份
     </div>
-    <div class="form-group">
-      <label>🔑 GitHub Token</label>
-      <input type="password" id="sToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="font-size:13px;">
-      <div style="font-size:11px;color:var(--orange);margin-top:4px;">
-        需勾选 <b>gist</b> 权限。没有？<a href="https://github.com/settings/tokens/new?scopes=gist&description=债管家Pro云同步" target="_blank" style="color:var(--accent);">点此创建</a>
+
+    <!-- 本地存储状态 -->
+    <div class="info-block" style="margin-bottom:12px;">
+      <div class="block-title">📱 本地存储</div>
+      <div class="block-content" style="display:flex;align-items:center;gap:8px;">
+        <span style="color:var(--green);">●</span> 已启用 · 自动保存
+        <span style="font-size:12px;color:var(--text2);">(localStorage)</span>
       </div>
     </div>
-    <div class="form-group">
-      <label>📋 同步状态</label>
-      <div id="syncStatusText" style="font-size:13px;color:var(--text2);">未配置</div>
+
+    <!-- iCloud 备份 -->
+    <div class="info-block" style="margin-bottom:12px;">
+      <div class="block-title">☁️ iCloud 备份</div>
+      <div class="block-content" id="backupStatus" style="font-size:14px;">
+        尚未备份
+      </div>
     </div>
-    <div class="btn-row">
-      <button class="btn btn-secondary" onclick="closeSettings()">关闭</button>
-      <button class="btn btn-primary" onclick="setupCloudSync()">保存并启用</button>
+
+    <div class="btn-row" style="margin-bottom:10px;">
+      <button class="btn btn-primary" onclick="backupToICloud()" style="flex:2;">📤 备份到 iCloud</button>
     </div>
-    <button class="btn" style="width:100%;margin-top:6px;background:var(--card2);color:var(--text);" onclick="manualSync()">🔄 手动同步</button>
-    <button class="btn btn-danger" style="width:100%;margin-top:4px;" onclick="disconnectSync()">断开云端同步</button>
+    <button class="btn" style="width:100%;margin-top:4px;background:var(--card2);color:var(--text);" onclick="document.getElementById('importFile').click()">📥 从备份恢复</button>
+
+    <!-- 备份提醒 -->
+    <div class="info-block" style="margin-top:14px;">
+      <div class="block-title">⏰ 备份提醒</div>
+      <div class="block-content" style="font-size:13px;color:var(--text2);">
+        距离上次备份超过 <b id="remindDays">7</b> 天时，首页顶部会出现提醒红条
+      </div>
+    </div>
+
+    <button class="btn btn-secondary" onclick="closeSettings()" style="width:100%;margin-top:10px;">关闭</button>
   </div>
 </div>
 
@@ -660,98 +675,63 @@ function load(){
 }
 function save(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(debts));
-  autoCloudPush(); // 自动推送到云端
 }
 
 // ============================================
-// 云端同步（GitHub Gist）
+// 备份中心
 // ============================================
-const GIST_SYNC_KEY = 'debt_gist_sync';
-let gistSync = { token: '', gistId: '', lastSync: '', lastHash: '' };
+const BACKUP_KEY = 'debt_backup_info';
+let backupInfo = { lastBackup: '', backupCount: 0 };
 
-function loadGistSync(){
-  try { gistSync = JSON.parse(localStorage.getItem(GIST_SYNC_KEY)) || gistSync; }
+function loadBackupInfo(){
+  try { backupInfo = JSON.parse(localStorage.getItem(BACKUP_KEY)) || backupInfo; }
   catch(e) {}
 }
 
-function saveGistSync(){
-  localStorage.setItem(GIST_SYNC_KEY, JSON.stringify(gistSync));
+function saveBackupInfo(){
+  localStorage.setItem(BACKUP_KEY, JSON.stringify(backupInfo));
 }
 
-// 简单哈希（用于判断数据是否有变化）
-function dataHash(data){
-  let hash = 0, s = JSON.stringify(data);
-  for (let i = 0; i < s.length; i++) { hash = ((hash << 5) - hash) + s.charCodeAt(i); hash |= 0; }
-  return hash.toString(36);
+function backupToICloud(){
+  const data = JSON.stringify(debts, null, 2);
+  const blob = new Blob([data], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const now = new Date();
+  const ts = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  a.download = '债管家_备份_' + ts + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  backupInfo.lastBackup = now.toISOString();
+  backupInfo.backupCount++;
+  saveBackupInfo();
+  updateBackupStatus();
+  checkBackupReminder();
+  closeSettings();
+  toast('📤 备份文件已下载\n存到 iCloud/文件 App 即可永久保存');
 }
 
-// 自动推送（去重：数据没变就不推）
-let _pushTimer = null;
-function autoCloudPush(){
-  if (!gistSync.token || !gistSync.gistId) return;
-  const h = dataHash(debts);
-  if (h === gistSync.lastHash) return; // 没变化，跳过
-  clearTimeout(_pushTimer);
-  _pushTimer = setTimeout(() => cloudPush(), 2000); // 2秒防抖
-}
-
-async function cloudPush(){
-  if (!gistSync.token || !gistSync.gistId) return;
-  try {
-    const content = JSON.stringify(debts, null, 2);
-    const resp = await fetch(`https://api.github.com/gists/${gistSync.gistId}`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${gistSync.token}`,
-        'Accept': 'application/vnd.github+json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        description: '债管家Pro 数据备份 - 自动同步',
-        files: { 'debt-data.json': { content } }
-      })
-    });
-    if (resp.ok) {
-      gistSync.lastSync = new Date().toISOString();
-      gistSync.lastHash = dataHash(debts);
-      saveGistSync();
-      updateSyncStatus();
-    } else if (resp.status === 401) {
-      console.error('GitHub Token 无效');
-      updateSyncStatus(true);
-    }
-  } catch(e) {
-    console.error('云端推送失败:', e.message);
-    updateSyncStatus(true);
+function updateBackupStatus(){
+  const el = document.getElementById('backupStatus');
+  if (!el) return;
+  if (backupInfo.lastBackup) {
+    const d = new Date(backupInfo.lastBackup);
+    el.innerHTML = `
+      <div style="color:var(--green);">✅ 上次备份：${d.toLocaleDateString('zh-CN')} ${d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</div>
+      <div style="font-size:12px;color:var(--text2);">共备份 ${backupInfo.backupCount} 次</div>
+    `;
+  } else {
+    el.innerHTML = '<span style="color:var(--orange);">⚠ 尚未备份，建议立即备份</span>';
   }
 }
 
-async function cloudPull(){
-  if (!gistSync.token || !gistSync.gistId) return null;
-  try {
-    const resp = await fetch(`https://api.github.com/gists/${gistSync.gistId}`, {
-      headers: {
-        'Authorization': `Bearer ${gistSync.token}`,
-        'Accept': 'application/vnd.github+json',
-      }
-    });
-    if (!resp.ok) return null;
-    const gist = await resp.json();
-    const file = gist.files && gist.files['debt-data.json'];
-    if (!file || !file.content) return null;
-    const data = JSON.parse(file.content);
-    if (!Array.isArray(data)) return null;
-    return data;
-  } catch(e) {
-    console.error('云端拉取失败:', e.message);
-    return null;
-  }
-}
-
-// 设置
 function openSettings(){
-  loadGistSync();
-  document.getElementById('sToken').value = gistSync.token || '';
+  loadBackupInfo();
+  updateBackupStatus();
   updateSyncStatus();
   document.getElementById('settingsModal').classList.add('show');
   document.body.style.overflow = 'hidden';
@@ -762,164 +742,51 @@ function closeSettings(){
   document.body.style.overflow = '';
 }
 
-async function setupCloudSync(){
-  const token = document.getElementById('sToken').value.trim();
-  if (!token) { toast('请填写 GitHub Token', true); return; }
-  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
-    toast('Token 格式不对，应以 ghp_ 或 github_pat_ 开头', true); return;
+// 备份提醒：超过7天未备份，顶部显示红条
+function checkBackupReminder(){
+  loadBackupInfo();
+  const banner = document.getElementById('alertBanner');
+  if (!backupInfo.lastBackup) {
+    // 从未备份，3天后开始提醒
+    return;
   }
-
-  document.getElementById('syncStatusText').textContent = '验证中...';
-
-  // 如果已有 gistId，直接更新 token
-  if (gistSync.gistId) {
-    gistSync.token = token;
-    saveGistSync();
-    // 验证：尝试拉取
-    const test = await cloudPull();
-    if (test === null) {
-      // 可能是 token 无效或 gist 被删了，创建新的
-      gistSync.gistId = '';
-    }
-  }
-
-  if (!gistSync.gistId) {
-    // 创建新的私有 Gist
-    try {
-      const resp = await fetch('https://api.github.com/gists', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${gistSync.token}`,
-          'Accept': 'application/vnd.github+json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          description: '债管家Pro 数据备份 - 自动同步',
-          public: false,
-          files: { 'debt-data.json': { content: JSON.stringify(debts, null, 2) } }
-        })
-      });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        toast('创建云端存储失败: ' + (err.message || '请检查 Token'), true);
-        document.getElementById('syncStatusText').textContent = '配置失败';
-        return;
-      }
-      const gist = await resp.json();
-      gistSync.gistId = gist.id;
-      gistSync.token = token;
-    } catch(e) {
-      toast('网络错误，请重试', true);
-      return;
-    }
-  }
-
-  gistSync.lastSync = new Date().toISOString();
-  gistSync.lastHash = dataHash(debts);
-  saveGistSync();
-  document.getElementById('sToken').value = '';
-  updateSyncStatus();
-  closeSettings();
-  toast('☁️ 云端同步已启用！数据永不丢失');
-}
-
-function disconnectSync(){
-  document.getElementById('confirmTitle').textContent = '⚠️ 断开云端同步';
-  document.getElementById('confirmMsg').textContent = '断开后数据仅存本地，云端备份将保留。确定断开？';
-  confirmCallback = function(){
-    gistSync = { token: '', gistId: '', lastSync: '', lastHash: '' };
-    saveGistSync();
-    closeConfirm();
-    updateSyncStatus();
-    toast('已断开云端同步');
-  };
-  showConfirm();
-}
-
-async function manualSync(){
-  if (!gistSync.token || !gistSync.gistId) {
-    toast('请先配置云端同步', true); return;
-  }
-  document.getElementById('syncStatusText').textContent = '同步中...';
-  // 先从云端拉取
-  const cloudData = await cloudPull();
-  if (cloudData !== null) {
-    // 云端有数据，合并（以条数多的为准，或者提示用户）
-    if (cloudData.length > debts.length) {
-      debts = cloudData;
-      save();
-      loadGistSync(); // reload sync state (save()有副作用)
-      gistSync.lastHash = dataHash(debts);
-      gistSync.lastSync = new Date().toISOString();
-      saveGistSync();
-      refreshAll();
-      toast(`☁️ 从云端恢复 ${cloudData.length} 笔记录`);
-    } else {
-      // 本地多，推送到云端
-      await cloudPush();
-      toast('☁️ 已同步到云端');
-    }
-  } else {
-    // 云端无数据，推送
-    await cloudPush();
-    toast('☁️ 已推送到云端');
-  }
-  updateSyncStatus();
-  if (document.getElementById('settingsModal').classList.contains('show')) {
-    document.getElementById('syncStatusText').textContent = gistSync.lastSync
-      ? '最后同步: ' + new Date(gistSync.lastSync).toLocaleString('zh-CN')
-      : '已配置';
+  const last = new Date(backupInfo.lastBackup);
+  const now = new Date();
+  const days = Math.floor((now - last) / (1000*60*60*24));
+  document.getElementById('remindDays').textContent = days;
+  if (days >= 7 && !banner.classList.contains('show')) {
+    document.getElementById('alertTitle').textContent = '📤 已 ' + days + ' 天未备份';
+    document.getElementById('alertDetail').textContent = '点击进入数据安全中心 → 备份到 iCloud';
+    banner.classList.add('show');
+    banner.onclick = function(){ openSettings(); };
   }
 }
 
-function updateSyncStatus(isErr){
+function updateSyncStatus(){
   const btn = document.getElementById('syncStatusBtn');
   if (!btn) return;
-  if (isErr) {
-    btn.style.background = 'rgba(231,76,60,0.3)';
-    btn.style.color = 'var(--red)';
-    btn.title = '同步失败，点击查看';
-  } else if (gistSync.token && gistSync.gistId) {
+  loadBackupInfo();
+  const last = backupInfo.lastBackup ? new Date(backupInfo.lastBackup) : null;
+  const now = new Date();
+  if (last && (now - last) < 7*24*60*60*1000) {
     btn.style.background = 'rgba(46,204,113,0.2)';
     btn.style.color = 'var(--green)';
-    btn.title = '云端同步已启用';
+    btn.title = '数据安全：最近已备份';
+  } else if (last) {
+    btn.style.background = 'rgba(230,126,34,0.3)';
+    btn.style.color = 'var(--orange)';
+    btn.title = '超过7天未备份，点击备份';
   } else {
     btn.style.background = 'var(--card2)';
     btn.style.color = 'var(--text)';
-    btn.title = '云端同步未配置，点击设置';
+    btn.title = '数据安全中心，点击查看';
   }
 }
 
-// 初始化时从云端拉取
-async function initCloudSync(){
-  loadGistSync();
+function initBackupSystem(){
+  loadBackupInfo();
   updateSyncStatus();
-  if (gistSync.token && gistSync.gistId) {
-    const cloudData = await cloudPull();
-    if (cloudData !== null && cloudData.length > 0) {
-      // 智能合并：云端 + 本地，按 id 去重，保留更新时间最新的
-      const map = new Map();
-      [...debts, ...cloudData].forEach(d => {
-        const existing = map.get(d.id);
-        if (!existing || new Date(d.updatedAt||d.createdAt||0) > new Date(existing.updatedAt||existing.createdAt||0)) {
-          map.set(d.id, d);
-        }
-      });
-      const merged = Array.from(map.values());
-      if (merged.length !== debts.length || dataHash(merged) !== dataHash(debts)) {
-        debts = merged;
-        save();
-        refreshAll();
-      }
-      // 更新同步哈希，避免重复推送
-      gistSync.lastHash = dataHash(debts);
-      gistSync.lastSync = new Date().toISOString();
-      saveGistSync();
-    } else if (debts.length > 0) {
-      // 云端空但本地有数据，推送上去
-      cloudPush();
-    }
-  }
+  checkBackupReminder();
 }
 
 // ============================================
