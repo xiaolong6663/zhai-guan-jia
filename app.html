@@ -1,0 +1,2024 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="债管家Pro">
+<meta name="theme-color" content="#0f0f1a">
+<title>债管家 Pro</title>
+
+<script>
+// PWA Manifest (内联)
+const m = {
+  name:"债管家 Pro", short_name:"债管家Pro",
+  description:"私人借贷利息追踪催收工具",
+  start_url:location.href, display:"standalone",
+  background_color:"#0f0f1a", theme_color:"#0f0f1a",
+  icons:[{src:"data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#e94560"/><text x="96" y="125" text-anchor="middle" font-size="100" fill="white">💰</text></svg>'),sizes:"192x192",type:"image/svg+xml"}]
+};
+const b = new Blob([JSON.stringify(m)],{type:'application/json'});
+const l = document.createElement('link'); l.rel='manifest';
+l.href=URL.createObjectURL(b); document.head.appendChild(l);
+</script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f0f1a; --card:#1a1a2e; --card2:#16213e;
+  --accent:#e94560; --accent2:#0f3460; --gold:#f0c040;
+  --text:#eaeaea; --text2:#9090a8; --green:#2ecc71;
+  --red:#e74c3c; --orange:#e67e22;
+  --radius:14px; --radius-sm:10px;
+  --safe-b:env(safe-area-inset-bottom,16px);
+  --safe-t:env(safe-area-inset-top,0px);
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--text); min-height:100vh;
+  -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
+  user-select:none; -webkit-user-select:none; padding-bottom:120px;
+  padding-top:var(--safe-t);
+}
+
+/* ===== Header ===== */
+.header{
+  background:linear-gradient(180deg,#1a1a2e 0%,#0f0f1a 100%);
+  padding:16px 20px; position:sticky; top:0; z-index:100;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  display:flex; justify-content:space-between; align-items:center;
+}
+.header h1{
+  font-size:26px; font-weight:800;
+  background:linear-gradient(135deg,#e94560,#f0c040);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.header-actions{display:flex; gap:8px;}
+.header-btn{
+  background:var(--card2); border:none; color:var(--text);
+  width:38px; height:38px; border-radius:50%; font-size:16px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.header-btn:active{opacity:0.7;}
+
+/* ===== Alert Banner ===== */
+.alert-banner{
+  display:none; margin:12px 16px 0; padding:12px 14px;
+  background:linear-gradient(135deg,rgba(233,69,96,0.25),rgba(192,57,43,0.2));
+  border:1px solid rgba(233,69,96,0.35); border-radius:var(--radius-sm);
+  align-items:center; gap:10px; cursor:pointer;
+}
+.alert-banner.show{display:flex;}
+.alert-banner .icon{font-size:22px; flex-shrink:0;}
+.alert-banner .info{flex:1; min-width:0;}
+.alert-banner .info .t{font-size:14px; font-weight:700; color:var(--red);}
+.alert-banner .info .d{font-size:12px; color:var(--text2); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.alert-banner .arrow{color:var(--text2); font-size:16px;}
+
+/* ===== Summary ===== */
+.summary-row{
+  display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:14px 16px 0;
+}
+.summary-card{
+  background:var(--card); border-radius:var(--radius-sm);
+  padding:12px 14px; border:1px solid rgba(255,255,255,0.04);
+}
+.summary-card .val{font-size:19px; font-weight:700; line-height:1.2;}
+.summary-card .val.red{color:var(--red);}
+.summary-card .val.gold{color:var(--gold);}
+.summary-card .val.green{color:var(--green);}
+.summary-card .val.orange{color:var(--orange);}
+.summary-card .lbl{font-size:11px; color:var(--text2); margin-top:3px;}
+
+/* ===== Filter Tabs ===== */
+.filter-row{
+  display:flex; gap:6px; padding:14px 16px 6px; overflow-x:auto;
+  scrollbar-width:none; -ms-overflow-style:none;
+}
+.filter-row::-webkit-scrollbar{display:none;}
+.filter-tab{
+  padding:7px 14px; border-radius:16px; font-size:13px; font-weight:600;
+  background:var(--card); color:var(--text2); border:1px solid rgba(255,255,255,0.06);
+  cursor:pointer; white-space:nowrap; flex-shrink:0; transition:all .15s;
+}
+.filter-tab.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+.filter-tab .badge{
+  display:inline-block; background:rgba(255,255,255,0.25); color:#fff;
+  border-radius:10px; padding:1px 7px; font-size:11px; margin-left:4px;
+  min-width:18px; text-align:center;
+}
+
+/* ===== Debt List ===== */
+.list-section{padding:10px 16px;}
+.list-section h2{font-size:14px; color:var(--text2); margin-bottom:8px; font-weight:500;}
+.debt-card{
+  background:var(--card); border-radius:var(--radius);
+  padding:14px; margin-bottom:10px;
+  border:1px solid rgba(255,255,255,0.05);
+  position:relative; overflow:hidden; cursor:pointer;
+  transition:transform .12s;
+}
+.debt-card:active{transform:scale(0.985);}
+.debt-card .left-line{
+  position:absolute; left:0; top:0; bottom:0; width:4px;
+  border-radius:4px 0 0 4px;
+}
+.left-line.danger{background:var(--red);}
+.left-line.warn{background:var(--gold);}
+.left-line.ok{background:var(--green);}
+.left-line.closed{background:var(--text2);}
+.debt-card .main-row{display:flex; justify-content:space-between; align-items:flex-start;}
+.debt-card .name{font-size:17px; font-weight:700;}
+.debt-card .principal{font-size:15px; font-weight:700; color:var(--red);}
+.debt-card .purpose{font-size:12px; color:var(--text2); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.debt-card .meta-row{display:flex; gap:14px; margin-top:8px; font-size:12px; color:var(--text2); flex-wrap:wrap;}
+.debt-card .meta-row span{white-space:nowrap;}
+.debt-card .status-row{display:flex; align-items:center; gap:8px; margin-top:6px;}
+.debt-card .tag{display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600;}
+.tag.danger{background:rgba(231,76,60,0.2); color:var(--red);}
+.tag.warn{background:rgba(240,192,64,0.2); color:var(--gold);}
+.tag.ok{background:rgba(46,204,113,0.2); color:var(--green);}
+.tag.closed{background:rgba(144,144,168,0.2); color:var(--text2);}
+.debt-card .quick-actions{
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-top:10px;
+}
+.qa-btn{
+  padding:8px 4px; border-radius:8px; border:1px solid rgba(255,255,255,0.08);
+  background:var(--card2); color:var(--text); font-size:12px; font-weight:600;
+  cursor:pointer; text-align:center; transition:all .12s; white-space:nowrap;
+}
+.qa-btn:active{opacity:0.6; transform:scale(0.96);}
+.qa-btn.pay{color:var(--green); border-color:rgba(46,204,113,0.25);}
+.qa-btn.comm{color:var(--gold); border-color:rgba(240,192,64,0.25);}
+.qa-btn.detail{color:var(--text2);}
+
+/* ===== Empty ===== */
+.empty{text-align:center; padding:60px 20px; color:var(--text2);}
+.empty .icon{font-size:60px; margin-bottom:12px;}
+.empty .msg{font-size:15px; line-height:1.6;}
+
+/* ===== FAB ===== */
+.fab{
+  position:fixed; bottom:calc(28px + var(--safe-b)); right:18px;
+  width:54px; height:54px; border-radius:50%;
+  background:var(--accent); color:#fff; border:none;
+  font-size:28px; box-shadow:0 4px 24px rgba(233,69,96,0.45);
+  z-index:200; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:transform .15s;
+}
+.fab:active{transform:scale(0.88);}
+
+/* ===== Modal ===== */
+.modal-overlay{
+  display:none; position:fixed; inset:0; z-index:500;
+  background:rgba(0,0,0,0.75); backdrop-filter:blur(4px);
+  justify-content:center; align-items:flex-end;
+}
+.modal-overlay.show{display:flex;}
+.modal{
+  background:var(--card); width:100%; max-height:92vh;
+  border-radius:20px 20px 0 0; padding:20px 16px;
+  padding-bottom:calc(20px + var(--safe-b));
+  overflow-y:auto;
+}
+.modal h3{font-size:19px; margin-bottom:14px; display:flex; align-items:center; gap:8px;}
+.modal h3 .mode-badge{
+  font-size:11px; padding:3px 8px; border-radius:10px; font-weight:500;
+  background:var(--card2); color:var(--text2);
+}
+.form-group{margin-bottom:12px;}
+.form-group label{display:block; font-size:13px; color:var(--text2); margin-bottom:5px; font-weight:500;}
+.form-group input,.form-group textarea,.form-group select{
+  width:100%; padding:11px 13px; background:var(--bg);
+  border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius-sm);
+  color:var(--text); font-size:15px; font-family:inherit;
+  -webkit-appearance:none;
+}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{
+  border-color:var(--accent); outline:none;
+}
+.form-group textarea{min-height:72px; resize:vertical;}
+.form-row{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.mode-selector{display:flex; gap:8px; flex-wrap:wrap;}
+.mode-opt{
+  flex:1; min-width:80px; padding:10px 8px; border-radius:var(--radius-sm);
+  background:var(--bg); border:2px solid rgba(255,255,255,0.08);
+  color:var(--text2); text-align:center; font-size:13px; font-weight:600;
+  cursor:pointer; transition:all .15s;
+}
+.mode-opt.selected{border-color:var(--accent); color:var(--accent); background:rgba(233,69,96,0.1);}
+.mode-opt .ic{display:block; font-size:24px; margin-bottom:4px;}
+
+/* Buttons */
+.btn-row{display:flex; gap:10px; margin-top:18px;}
+.btn{
+  flex:1; padding:13px; border-radius:var(--radius-sm);
+  font-size:15px; font-weight:600; border:none; cursor:pointer;
+  transition:opacity .12s; text-align:center;
+}
+.btn:active{opacity:0.7;}
+.btn-primary{background:var(--accent); color:#fff;}
+.btn-secondary{background:var(--card2); color:var(--text);}
+.btn-danger{background:transparent; color:var(--red); border:1px solid rgba(231,76,60,0.3);}
+.btn-gold{background:var(--gold); color:#000; font-weight:700;}
+.btn-green{background:var(--green); color:#fff;}
+.btn-outline{background:transparent; color:var(--text2); border:1px solid rgba(255,255,255,0.12);}
+.btn-sm{padding:8px 14px; font-size:13px; flex:none; border-radius:8px;}
+
+/* Detail Modal */
+.detail-modal .info-block{
+  background:var(--bg); border-radius:var(--radius-sm);
+  padding:14px; margin-bottom:10px;
+}
+.detail-modal .info-block .block-title{
+  font-size:11px; color:var(--text2); margin-bottom:6px;
+  text-transform:uppercase; letter-spacing:1px;
+}
+.detail-modal .big-amount{font-size:34px; font-weight:800; color:var(--red);}
+.detail-modal .calc-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.detail-modal .calc-grid .item{
+  background:var(--card2); padding:11px; border-radius:var(--radius-sm); text-align:center;
+}
+.detail-modal .calc-grid .item .v{font-size:20px; font-weight:700;}
+.detail-modal .calc-grid .item .l{font-size:11px; color:var(--text2); margin-top:2px;}
+
+/* Timeline */
+.timeline{margin-top:2px;}
+.timeline-item{
+  display:flex; gap:10px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04);
+  align-items:flex-start;
+}
+.timeline-item:last-child{border-bottom:none;}
+.timeline-item .t-icon{font-size:18px; flex-shrink:0; width:28px; text-align:center;}
+.timeline-item .t-content{flex:1; min-width:0;}
+.timeline-item .t-date{font-size:11px; color:var(--text2);}
+.timeline-item .t-text{font-size:13px; line-height:1.5; margin-top:2px;}
+.timeline-item .t-delay{font-size:11px; color:var(--red); font-weight:600;}
+
+/* Photo gallery */
+.photo-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;}
+.photo-thumb{
+  width:72px; height:72px; border-radius:8px; object-fit:cover;
+  background:var(--bg); border:1px solid rgba(255,255,255,0.08);
+  cursor:pointer;
+}
+.photo-add{
+  width:72px; height:72px; border-radius:8px;
+  background:var(--bg); border:2px dashed rgba(255,255,255,0.15);
+  display:flex; align-items:center; justify-content:center;
+  font-size:28px; color:var(--text2); cursor:pointer;
+}
+.photo-add:active{background:var(--card2);}
+
+/* Confirm */
+.confirm-overlay{
+  display:none; position:fixed; inset:0; z-index:700;
+  background:rgba(0,0,0,0.8); justify-content:center; align-items:center;
+}
+.confirm-overlay.show{display:flex;}
+.confirm-box{
+  background:var(--card); border-radius:var(--radius); padding:24px;
+  width:300px; text-align:center;
+}
+.confirm-box h4{margin-bottom:8px; font-size:17px;}
+.confirm-box p{color:var(--text2); font-size:14px; margin-bottom:20px; line-height:1.5;}
+.confirm-box .btns{display:flex; gap:10px;}
+.confirm-box .btns .btn{flex:1;}
+
+/* Toast */
+.toast{
+  position:fixed; top:60px; left:50%; transform:translateX(-50%);
+  background:var(--green); color:#fff; padding:10px 22px;
+  border-radius:20px; font-weight:600; font-size:14px;
+  z-index:999; opacity:0; transition:opacity .3s; pointer-events:none;
+}
+.toast.show{opacity:1;}
+.toast.err{background:var(--red);}
+
+/* Photo fullscreen */
+.photo-fullscreen{
+  display:none; position:fixed; inset:0; z-index:800; background:rgba(0,0,0,0.95);
+  justify-content:center; align-items:center; cursor:pointer;
+}
+.photo-fullscreen.show{display:flex;}
+.photo-fullscreen img{max-width:95vw; max-height:90vh; border-radius:8px;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:0;}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>💰 债管家 Pro</h1>
+  <div class="header-actions">
+    <button class="header-btn" onclick="generateAllICS()" title="一键生成所有日历提醒" style="background:rgba(240,192,64,0.2);color:var(--gold);">🔔</button>
+    <button class="header-btn" id="syncStatusBtn" onclick="openSettings()" title="云端同步" style="font-size:12px;">☁️</button>
+    <button class="header-btn" onclick="exportData()" title="备份数据">📤</button>
+    <button class="header-btn" onclick="document.getElementById('importFile').click()" title="恢复备份">📥</button>
+  </div>
+</div>
+<input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+
+<!-- Alert Banner -->
+<div class="alert-banner" id="alertBanner" onclick="scrollToAlerts()">
+  <span class="icon">🔔</span>
+  <div class="info">
+    <div class="t" id="alertTitle"></div>
+    <div class="d" id="alertDetail"></div>
+  </div>
+  <span class="arrow">›</span>
+</div>
+
+<!-- Summary -->
+<div class="summary-row" id="summaryRow">
+  <div class="summary-card">
+    <div class="val gold" id="sExpected">¥0</div>
+    <div class="lbl">📅 本月应收利息</div>
+  </div>
+  <div class="summary-card">
+    <div class="val green" id="sReceived">¥0</div>
+    <div class="lbl">✅ 本月实收利息</div>
+  </div>
+  <div class="summary-card">
+    <div class="val red" id="sOverdue">0笔</div>
+    <div class="lbl">⚠️ 逾期中</div>
+  </div>
+  <div class="summary-card">
+    <div class="val orange" id="sTotal">¥0</div>
+    <div class="lbl">💰 总本金(在借)</div>
+  </div>
+</div>
+
+<!-- Filter Tabs -->
+<div class="filter-row" id="filterRow">
+  <div class="filter-tab active" data-filter="all" onclick="setFilter('all',this)">📋 全部</div>
+  <div class="filter-tab" data-filter="overdue" onclick="setFilter('overdue',this)">⚠️ 逾期</div>
+  <div class="filter-tab" data-filter="soon" onclick="setFilter('soon',this)">📅 近日到期</div>
+  <div class="filter-tab" data-filter="normal" onclick="setFilter('normal',this)">✅ 正常</div>
+</div>
+
+<!-- Debt List -->
+<div class="list-section">
+  <div id="debtList"></div>
+  <div class="empty" id="emptyState">
+    <div class="icon">📭</div>
+    <div class="msg">还没有债务记录<br>点击右下角 + 号添加第一笔</div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openAddModal()">+</button>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Form Modal (Add/Edit) -->
+<div class="modal-overlay" id="formModal">
+  <div class="modal">
+    <h3 id="formTitle">添加债务</h3>
+
+    <div class="form-group">
+      <label>👤 欠款人姓名 *</label>
+      <input type="text" id="fName" placeholder="例如：张三" maxlength="50">
+    </div>
+    <div class="form-group">
+      <label>📝 借款事由</label>
+      <input type="text" id="fTitle" placeholder="例如：2024年买房借款" maxlength="200">
+    </div>
+
+    <div class="form-group">
+      <label>💳 还款方式</label>
+      <div class="mode-selector" id="modeSelector">
+        <div class="mode-opt selected" data-mode="monthly" onclick="selectMode('monthly',this)">
+          <span class="ic">📅</span>按月付息
+        </div>
+        <div class="mode-opt" data-mode="bullet" onclick="selectMode('bullet',this)">
+          <span class="ic">🎯</span>到期一次性
+        </div>
+        <div class="mode-opt" data-mode="irregular" onclick="selectMode('irregular',this)">
+          <span class="ic">📌</span>不定期还款
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>💰 本金 *</label>
+        <input type="number" id="fAmount" placeholder="借款金额" min="0" step="0.01">
+      </div>
+      <div class="form-group" id="fRateGroup">
+        <label>📈 月息(分利)</label>
+        <input type="number" id="fRate" placeholder="1分利=1%" min="0" step="0.01" value="1">
+      </div>
+    </div>
+
+    <div class="form-row" id="fMonthlyFields">
+      <div class="form-group">
+        <label>📅 起息日期</label>
+        <input type="date" id="fStartDate">
+      </div>
+      <div class="form-group">
+        <label>🗓️ 每月几号付息</label>
+        <input type="number" id="fPayDay" placeholder="1-28" min="1" max="28" value="1">
+      </div>
+    </div>
+
+    <div class="form-group" id="fBulletFields" style="display:none;">
+      <label>📅 到期日期</label>
+      <input type="date" id="fDueDate">
+    </div>
+
+    <div class="form-group">
+      <label>✅ 已付期数</label>
+      <input type="number" id="fPaidMonths" placeholder="已经付过几期利息" min="0" step="1" value="0">
+    </div>
+
+    <div class="form-group">
+      <label>📋 备注</label>
+      <textarea id="fNotes" placeholder="约定条款、联系方式、担保情况等…" maxlength="2000"></textarea>
+    </div>
+
+    <!-- Photo section (edit mode) -->
+    <div class="form-group" id="fPhotoGroup" style="display:none;">
+      <label>📸 借条/凭证照片</label>
+      <div class="photo-row" id="fPhotos"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="closeFormModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveDebt()">保存</button>
+    </div>
+    <button class="btn btn-danger" id="deleteBtn" style="display:none;width:100%;margin-top:8px;" onclick="confirmDelete()">🗑️ 删除此记录</button>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay detail-modal" id="detailModal">
+  <div class="modal">
+    <h3 id="dName"></h3>
+    <div id="dPurpose" style="color:var(--text2);font-size:13px;margin-bottom:14px;"></div>
+
+    <div class="info-block">
+      <div class="block-title">本金</div>
+      <div class="big-amount" id="dAmount"></div>
+    </div>
+
+    <div class="calc-grid" id="dCalc"></div>
+
+    <div class="info-block" style="margin-top:10px;">
+      <div class="block-title">还款状态</div>
+      <div id="dStatus" style="font-size:14px;line-height:1.8;"></div>
+    </div>
+
+    <div class="info-block" id="dNotesBlock" style="display:none;">
+      <div class="block-title">备注</div>
+      <div id="dNotes" style="font-size:14px;line-height:1.6;"></div>
+    </div>
+
+    <!-- Photos -->
+    <div class="info-block" id="dPhotosBlock" style="display:none;">
+      <div class="block-title">📸 借条/凭证</div>
+      <div class="photo-row" id="dPhotos"></div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="info-block">
+      <div class="block-title">📋 还款 & 沟通记录</div>
+      <div class="timeline" id="dTimeline"></div>
+      <button class="btn btn-outline btn-sm" style="margin-top:8px;width:100%;" onclick="openCommLogModal()">+ 添加沟通记录</button>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-green" id="dMarkPaidBtn" onclick="openQuickPayModal()">✅ 标记付息</button>
+      <button class="btn btn-gold" id="dRemindBtn" onclick="genCalendarForDetail()">📅 日历提醒</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-outline btn-sm" style="flex:1;" onclick="copyReminderText()">📋 复制催收文案</button>
+      <button class="btn btn-outline btn-sm" style="flex:1;" id="dCloseBtn" onclick="toggleCloseDebt()">📦 结清归档</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="closeDetailModal()">关闭</button>
+      <button class="btn btn-primary" onclick="editFromDetail()">编辑</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Pay Modal -->
+<div class="modal-overlay" id="quickPayModal">
+  <div class="modal">
+    <h3>✅ 标记付息</h3>
+    <div class="info-block">
+      <div class="block-content" id="qpInfo" style="font-size:15px;line-height:1.8;"></div>
+    </div>
+    <div class="form-group">
+      <label>📅 实际收款日期</label>
+      <input type="date" id="qpActualDate">
+    </div>
+    <div class="form-group" id="qpDelayGroup" style="display:none;">
+      <label style="color:var(--red);">⚠️ 延期天数</label>
+      <div style="font-size:22px;font-weight:800;color:var(--red);" id="qpDelayDays"></div>
+    </div>
+    <div class="form-group">
+      <label>📝 备注(可选)</label>
+      <input type="text" id="qpNotes" placeholder="例如：微信转账、现金…">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="closeQuickPayModal()">取消</button>
+      <button class="btn btn-green" onclick="confirmMarkPaid()">确认收款 ✅</button>
+    </div>
+  </div>
+</div>
+
+<!-- Communication Log Modal -->
+<div class="modal-overlay" id="commLogModal">
+  <div class="modal">
+    <h3>💬 记录沟通</h3>
+    <div class="form-group">
+      <label>沟通方式</label>
+      <div class="mode-selector" id="commTypeSelector">
+        <div class="mode-opt selected" data-type="call" onclick="selectCommType('call',this)"><span class="ic">📞</span>电话</div>
+        <div class="mode-opt" data-type="wechat" onclick="selectCommType('wechat',this)"><span class="ic">💬</span>微信</div>
+        <div class="mode-opt" data-type="sms" onclick="selectCommType('sms',this)"><span class="ic">📧</span>短信</div>
+        <div class="mode-opt" data-type="meet" onclick="selectCommType('meet',this)"><span class="ic">🤝</span>见面</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>结果</label>
+      <select id="commOutcome">
+        <option value="promised">🤙 对方承诺还款</option>
+        <option value="noreply">🔇 未回复/联系不上</option>
+        <option value="paid">💰 已还款</option>
+        <option value="excuse">🤷 推脱/找理由</option>
+        <option value="other">📝 其他</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>详细记录</label>
+      <textarea id="commContent" placeholder="记录沟通内容：对方说了什么、承诺了什么…" maxlength="1000"></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="closeCommLogModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveCommLog()">保存记录</button>
+    </div>
+  </div>
+</div>
+
+<!-- Photo Fullscreen -->
+<div class="photo-fullscreen" id="photoFullscreen" onclick="closePhotoFullscreen()">
+  <img id="photoFullImg" src="">
+</div>
+
+<!-- Confirm Dialog -->
+<div class="confirm-overlay" id="confirmDialog">
+  <div class="confirm-box">
+    <h4 id="confirmTitle">⚠️ 确认</h4>
+    <p id="confirmMsg"></p>
+    <div class="btns">
+      <button class="btn btn-secondary" onclick="closeConfirm()">取消</button>
+      <button class="btn btn-primary" id="confirmActionBtn" style="background:var(--red);">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h3>🔒 数据安全中心</h3>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">
+      数据双重保护：手机本地 + iCloud 备份
+    </div>
+
+    <!-- 本地存储状态 -->
+    <div class="info-block" style="margin-bottom:12px;">
+      <div class="block-title">📱 本地存储</div>
+      <div class="block-content" style="display:flex;align-items:center;gap:8px;">
+        <span style="color:var(--green);">●</span> 已启用 · 自动保存
+        <span style="font-size:12px;color:var(--text2);">(localStorage)</span>
+      </div>
+    </div>
+
+    <!-- iCloud 备份 -->
+    <div class="info-block" style="margin-bottom:12px;">
+      <div class="block-title">☁️ iCloud 备份</div>
+      <div class="block-content" id="backupStatus" style="font-size:14px;">
+        尚未备份
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-bottom:10px;">
+      <button class="btn btn-primary" onclick="backupToICloud()" style="flex:2;">📤 备份到 iCloud</button>
+    </div>
+    <button class="btn" style="width:100%;margin-top:4px;background:var(--card2);color:var(--text);" onclick="document.getElementById('importFile').click()">📥 从备份恢复</button>
+
+    <!-- 备份提醒 -->
+    <div class="info-block" style="margin-top:14px;">
+      <div class="block-title">⏰ 备份提醒</div>
+      <div class="block-content" style="font-size:13px;color:var(--text2);">
+        距离上次备份超过 <b id="remindDays">7</b> 天时，首页顶部会出现提醒红条
+      </div>
+    </div>
+
+    <button class="btn btn-secondary" onclick="closeSettings()" style="width:100%;margin-top:10px;">关闭</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Hidden file input for camera -->
+<input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoUpload(event)">
+
+<script>
+// ============================================
+// 常量
+// ============================================
+const STORAGE_KEY = 'debt_tracker_pro_v2';
+const TYPE_ICONS = { call:'📞', wechat:'💬', sms:'📧', meet:'🤝', payment:'💰', due:'📅', other:'📝' };
+const TYPE_LABELS = { call:'电话催收', wechat:'微信沟通', sms:'短信提醒', meet:'见面沟通', payment:'收款', due:'应付', other:'其他' };
+const OUTCOME_LABELS = { promised:'对方承诺还款', noreply:'未回复/联系不上', paid:'已还款', excuse:'推脱/找理由', other:'其他' };
+
+// ============================================
+// 全局状态
+// ============================================
+let debts = [];
+let editingId = null;
+let detailId = null;
+let currentFilter = 'all';
+let quickPayDebtId = null;
+let commLogDebtId = null;
+let commLogType = 'call';
+let selectedMode = 'monthly';
+let confirmCallback = null;
+
+// ============================================
+// 数据层
+// ============================================
+function load(){
+  try { debts = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch(e) { debts = []; }
+  // 数据迁移 & 默认值
+  debts.forEach(d => {
+    d.repaymentMode = d.repaymentMode || 'monthly';
+    d.payments = d.payments || [];
+    d.commLog = d.commLog || [];
+    d.photos = d.photos || [];
+    d.paidPeriods = d.paidPeriods || 0;
+    d.title = d.title || '';
+    d.payDay = d.payDay || 1;
+    d.status = d.status || 'active'; // active | closed
+    if (!d.createdAt) d.createdAt = new Date().toISOString();
+  });
+}
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(debts));
+}
+
+// ============================================
+// 备份中心
+// ============================================
+const BACKUP_KEY = 'debt_backup_info';
+let backupInfo = { lastBackup: '', backupCount: 0 };
+
+function loadBackupInfo(){
+  try { backupInfo = JSON.parse(localStorage.getItem(BACKUP_KEY)) || backupInfo; }
+  catch(e) {}
+}
+
+function saveBackupInfo(){
+  localStorage.setItem(BACKUP_KEY, JSON.stringify(backupInfo));
+}
+
+function backupToICloud(){
+  const data = JSON.stringify(debts, null, 2);
+  const blob = new Blob([data], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const now = new Date();
+  const ts = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  a.download = '债管家_备份.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  backupInfo.lastBackup = now.toISOString();
+  backupInfo.backupCount++;
+  saveBackupInfo();
+  updateBackupStatus();
+  checkBackupReminder();
+  closeSettings();
+  toast('📤 备份文件已下载\n存到 iCloud/文件 App 即可永久保存');
+}
+
+function updateBackupStatus(){
+  const el = document.getElementById('backupStatus');
+  if (!el) return;
+  if (backupInfo.lastBackup) {
+    const d = new Date(backupInfo.lastBackup);
+    el.innerHTML = `
+      <div style="color:var(--green);">✅ 上次备份：${d.toLocaleDateString('zh-CN')} ${d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</div>
+      <div style="font-size:12px;color:var(--text2);">共备份 ${backupInfo.backupCount} 次</div>
+    `;
+  } else {
+    el.innerHTML = '<span style="color:var(--orange);">⚠ 尚未备份，建议立即备份</span>';
+  }
+}
+
+function openSettings(){
+  loadBackupInfo();
+  updateBackupStatus();
+  updateSyncStatus();
+  document.getElementById('settingsModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSettings(){
+  document.getElementById('settingsModal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+// 备份提醒：超过7天未备份，顶部显示红条
+function checkBackupReminder(){
+  loadBackupInfo();
+  const banner = document.getElementById('alertBanner');
+  if (!backupInfo.lastBackup) {
+    // 从未备份，3天后开始提醒
+    return;
+  }
+  const last = new Date(backupInfo.lastBackup);
+  const now = new Date();
+  const days = Math.floor((now - last) / (1000*60*60*24));
+  document.getElementById('remindDays').textContent = days;
+  if (days >= 7 && !banner.classList.contains('show')) {
+    document.getElementById('alertTitle').textContent = '📤 已 ' + days + ' 天未备份';
+    document.getElementById('alertDetail').textContent = '点击进入数据安全中心 → 备份到 iCloud';
+    banner.classList.add('show');
+    banner.onclick = function(){ openSettings(); };
+  }
+}
+
+function updateSyncStatus(){
+  const btn = document.getElementById('syncStatusBtn');
+  if (!btn) return;
+  loadBackupInfo();
+  const last = backupInfo.lastBackup ? new Date(backupInfo.lastBackup) : null;
+  const now = new Date();
+  if (last && (now - last) < 7*24*60*60*1000) {
+    btn.style.background = 'rgba(46,204,113,0.2)';
+    btn.style.color = 'var(--green)';
+    btn.title = '数据安全：最近已备份';
+  } else if (last) {
+    btn.style.background = 'rgba(230,126,34,0.3)';
+    btn.style.color = 'var(--orange)';
+    btn.title = '超过7天未备份，点击备份';
+  } else {
+    btn.style.background = 'var(--card2)';
+    btn.style.color = 'var(--text)';
+    btn.title = '数据安全中心，点击查看';
+  }
+}
+
+function initBackupSystem(){
+  loadBackupInfo();
+  updateSyncStatus();
+  checkBackupReminder();
+}
+
+// ============================================
+// 日期 & 利息计算引擎
+// ============================================
+function today(){ const d = new Date(); d.setHours(0,0,0,0); return d; }
+function dateFromStr(s){ if(!s) return null; return new Date(s + 'T00:00:00'); }
+function fmtYMD(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function addMonths(d, n){ const r = new Date(d); r.setMonth(r.getMonth()+n); return r; }
+function daysBetween(a,b){ return Math.round((b-a)/(1000*60*60*24)); }
+
+// 第一个付息日
+function getFirstPayDate(debt){
+  if (!debt.startDate) return null;
+  const payDay = Math.min(28, parseInt(debt.payDay) || 1);
+  const start = dateFromStr(debt.startDate);
+  if (!start) return null;
+  let first = new Date(start.getFullYear(), start.getMonth(), Math.min(payDay, new Date(start.getFullYear(), start.getMonth()+1, 0).getDate()));
+  if (first < start) first = new Date(start.getFullYear(), start.getMonth()+1, Math.min(payDay, new Date(start.getFullYear(), start.getMonth()+2, 0).getDate()));
+  return first;
+}
+
+// 总期数（从起息日到现在的应付期数）
+function calcTotalPeriods(debt){
+  if (debt.repaymentMode !== 'monthly') return 0;
+  const first = getFirstPayDate(debt);
+  if (!first) return 0;
+  const now = today();
+  if (first > now) return 0;
+  const payDay = Math.min(28, parseInt(debt.payDay) || 1);
+  let months = (now.getFullYear() - first.getFullYear()) * 12 + (now.getMonth() - first.getMonth());
+  if (now.getDate() < payDay) months--;
+  return Math.max(0, months + 1);
+}
+
+// 未付期数
+function calcUnpaidPeriods(debt){
+  if (debt.repaymentMode === 'monthly') return Math.max(0, calcTotalPeriods(debt) - (debt.paidPeriods || 0));
+  if (debt.repaymentMode === 'bullet'){
+    const due = dateFromStr(debt.dueDate);
+    if (!due) return 0;
+    return (today() > due && debt.status === 'active') ? 1 : 0;
+  }
+  return 0;
+}
+
+// 月利息
+function calcMonthlyInterest(debt){
+  return (debt.amount || 0) * ((debt.rate || 0) / 100);
+}
+
+// 总利息（bullet模式）
+function calcTotalInterest(debt){
+  if (debt.repaymentMode === 'bullet'){
+    if (!debt.startDate || !debt.dueDate) return 0;
+    const start = dateFromStr(debt.startDate);
+    const due = dateFromStr(debt.dueDate);
+    if (!start || !due) return 0;
+    const totalMonths = Math.max(0, Math.ceil((due - start) / (1000*60*60*24*30.44)));
+    return (debt.amount || 0) * ((debt.rate || 0) / 100) * totalMonths;
+  }
+  return 0;
+}
+
+// 未收利息总额
+function calcUnpaidInterest(debt){
+  if (debt.repaymentMode === 'monthly') return calcMonthlyInterest(debt) * calcUnpaidPeriods(debt);
+  if (debt.repaymentMode === 'bullet'){
+    if (debt.status === 'closed') return 0;
+    const total = calcTotalInterest(debt);
+    const received = (debt.payments || []).reduce((s,p) => s + (p.amount||0), 0);
+    return Math.max(0, total - received);
+  }
+  if (debt.repaymentMode === 'irregular'){
+    const received = (debt.payments || []).reduce((s,p) => s + (p.amount||0), 0);
+    return Math.max(0, (debt.amount||0) - received);
+  }
+  return 0;
+}
+
+// 下一期应付日期
+function getNextPayDate(debt){
+  if (debt.repaymentMode === 'monthly'){
+    const first = getFirstPayDate(debt);
+    if (!first) return null;
+    const paid = debt.paidPeriods || 0;
+    const payDay = Math.min(28, parseInt(debt.payDay) || 1);
+    const next = addMonths(first, paid);
+    return new Date(next.getFullYear(), next.getMonth(), Math.min(payDay, new Date(next.getFullYear(), next.getMonth()+1, 0).getDate()));
+  }
+  if (debt.repaymentMode === 'bullet') return dateFromStr(debt.dueDate);
+  return null;
+}
+
+// 逾期期数
+function getOverduePeriods(debt){
+  const next = getNextPayDate(debt);
+  if (!next) return 0;
+  const now = today();
+  if (next > now) return 0;
+  if (debt.repaymentMode === 'monthly') return calcUnpaidPeriods(debt);
+  if (debt.repaymentMode === 'bullet') return 1;
+  return 0;
+}
+
+// 最早逾期日期（用于算具体延期天数）
+function getEarliestOverdueDate(debt){
+  const next = getNextPayDate(debt);
+  if (!next) return null;
+  const now = today();
+  if (next > now) return null;
+  return next; // 最早未付的到期日
+}
+
+// 逾期天数（最早一笔未付的）
+function getOverdueDays(debt){
+  const earliest = getEarliestOverdueDate(debt);
+  if (!earliest) return 0;
+  return daysBetween(earliest, today());
+}
+
+// 状态
+function getDebtStatus(debt){
+  if (debt.status === 'closed') return 'closed';
+  const overdue = getOverduePeriods(debt);
+  const overdueDays = getOverdueDays(debt);
+  if (overdue >= 3 || overdueDays >= 30) return 'danger';
+  if (overdue >= 1 || overdueDays >= 1) return 'warn';
+  const next = getNextPayDate(debt);
+  if (next){
+    const diff = daysBetween(today(), next);
+    if (diff <= 3 && diff >= 0) return 'soon';
+  }
+  return 'ok';
+}
+
+function getStatusText(debt){
+  if (debt.status === 'closed') return '已结清';
+  const overdue = getOverduePeriods(debt);
+  const days = getOverdueDays(debt);
+  const unpaid = calcUnpaidPeriods(debt);
+  if (overdue > 0 && days > 0) return `逾期${overdue}期·${days}天`;
+  if (overdue > 0) return `逾期${overdue}期`;
+  if (unpaid === 0 && debt.repaymentMode === 'monthly') return '已付清当期';
+  const next = getNextPayDate(debt);
+  if (next){
+    const diff = daysBetween(today(), next);
+    if (diff <= 1) return '明日到期';
+    if (diff <= 3) return `${diff}天后到期`;
+  }
+  return '正常';
+}
+
+// ============================================
+// 明日到期检测
+// ============================================
+function getTomorrowDueDebts(){
+  return debts.filter(d => {
+    if (d.status === 'closed') return false;
+    const next = getNextPayDate(d);
+    if (!next) return false;
+    const diff = daysBetween(today(), next);
+    return diff === 1; // 明天到期
+  });
+}
+
+// ============================================
+// 本月应收/实收计算
+// ============================================
+function calcMonthExpected(){
+  const now = today();
+  let total = 0;
+  debts.forEach(d => {
+    if (d.status === 'closed') return;
+    if (d.repaymentMode === 'monthly'){
+      // 当月应付的利息（当月payDay对应的期数是否已付）
+      const payDay = Math.min(28, parseInt(d.payDay) || 1);
+      const monthPayDate = new Date(now.getFullYear(), now.getMonth(), Math.min(payDay, new Date(now.getFullYear(), now.getMonth()+1, 0).getDate()));
+      const totalPeriods = calcTotalPeriods(d);
+      // 当月这期是否在应还范围
+      const first = getFirstPayDate(d);
+      if (!first) return;
+      let periodForThisMonth = 0;
+      let cursor = new Date(first);
+      for (let i = 0; i < totalPeriods; i++){
+        if (cursor.getFullYear() === now.getFullYear() && cursor.getMonth() === now.getMonth()){
+          periodForThisMonth = i + 1;
+          break;
+        }
+        cursor = addMonths(cursor, 1);
+      }
+      if (periodForThisMonth > 0 && periodForThisMonth > (d.paidPeriods || 0)){
+        total += calcMonthlyInterest(d);
+      }
+    }
+    if (d.repaymentMode === 'bullet'){
+      const due = dateFromStr(d.dueDate);
+      if (due && due.getFullYear() === now.getFullYear() && due.getMonth() === now.getMonth()){
+        total += calcTotalInterest(d);
+      }
+    }
+  });
+  return total;
+}
+
+function calcMonthReceived(){
+  const now = today();
+  let total = 0;
+  debts.forEach(d => {
+    (d.payments || []).forEach(p => {
+      const pd = dateFromStr(p.date);
+      if (pd && pd.getFullYear() === now.getFullYear() && pd.getMonth() === now.getMonth()){
+        total += (p.amount || 0);
+      }
+    });
+  });
+  return total;
+}
+
+// ============================================
+// 格式化
+// ============================================
+function fmtMoney(n){ return '¥' + (Number(n||0)).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtDateCN(s){
+  if (!s) return '未设置';
+  const d = dateFromStr(s);
+  if (!d) return '未设置';
+  return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
+}
+function esc(s){ const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; }
+
+// ============================================
+// 渲染
+// ============================================
+function renderAlert(){
+  const banner = document.getElementById('alertBanner');
+  const tomorrows = getTomorrowDueDebts();
+  if (tomorrows.length === 0){
+    banner.classList.remove('show');
+    return;
+  }
+  banner.classList.add('show');
+  document.getElementById('alertTitle').textContent = `🔔 明天有 ${tomorrows.length} 笔利息到期`;
+  const names = tomorrows.map(d => d.name + ' ' + fmtMoney(calcMonthlyInterest(d))).join(' · ');
+  document.getElementById('alertDetail').textContent = names;
+}
+
+function renderSummary(){
+  const expected = calcMonthExpected();
+  const received = calcMonthReceived();
+  const overdue = debts.filter(d => { const s = getDebtStatus(d); return s === 'danger' || s === 'warn'; }).length;
+  const totalPrincipal = debts.filter(d => d.status === 'active').reduce((s,d) => s + (Number(d.amount)||0), 0);
+
+  document.getElementById('sExpected').textContent = fmtMoney(expected);
+  document.getElementById('sReceived').textContent = fmtMoney(received);
+  document.getElementById('sOverdue').textContent = overdue + '笔';
+  document.getElementById('sTotal').textContent = fmtMoney(totalPrincipal);
+}
+
+function renderList(){
+  const container = document.getElementById('debtList');
+  const empty = document.getElementById('emptyState');
+
+  // 筛选
+  let filtered = [...debts];
+  if (currentFilter === 'overdue') filtered = filtered.filter(d => { const s = getDebtStatus(d); return s === 'danger' || s === 'warn'; });
+  else if (currentFilter === 'soon') filtered = filtered.filter(d => getDebtStatus(d) === 'soon');
+  else if (currentFilter === 'normal') filtered = filtered.filter(d => getDebtStatus(d) === 'ok');
+
+  // 排序：逾期>近日到期>正常>已结清，同状态逾期天数降序
+  const orderMap = { danger:0, warn:1, soon:2, ok:3, closed:4 };
+  filtered.sort((a,b) => {
+    const oa = orderMap[getDebtStatus(a)] ?? 5;
+    const ob = orderMap[getDebtStatus(b)] ?? 5;
+    if (oa !== ob) return oa - ob;
+    return getOverdueDays(b) - getOverdueDays(a);
+  });
+
+  // 更新badge
+  const overdueCount = debts.filter(d => { const s = getDebtStatus(d); return s==='danger'||s==='warn'; }).length;
+  const soonCount = debts.filter(d => getDebtStatus(d)==='soon').length;
+  document.querySelector('[data-filter="overdue"] .badge').textContent = overdueCount||'';
+  document.querySelector('[data-filter="soon"] .badge').textContent = soonCount||'';
+
+  if (filtered.length === 0){
+    container.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  container.innerHTML = filtered.map(d => {
+    const st = getDebtStatus(d);
+    const stText = getStatusText(d);
+    const monthlyInt = calcMonthlyInterest(d);
+    const unpaidInt = calcUnpaidInterest(d);
+    const overdueDays = getOverdueDays(d);
+    const nextPay = getNextPayDate(d);
+    const modeLabel = d.repaymentMode === 'monthly' ? '按月付息' : d.repaymentMode === 'bullet' ? '到期一次性' : '不定期';
+    const isClosed = d.status === 'closed';
+
+    let metaHTML = '';
+    if (d.repaymentMode === 'monthly'){
+      metaHTML = `<span>📈 ${d.rate}分利·月息${fmtMoney(monthlyInt)}</span><span>📅 每月${d.payDay}号</span><span>✅ 已付${d.paidPeriods||0}期</span>`;
+    } else if (d.repaymentMode === 'bullet'){
+      metaHTML = `<span>📈 ${d.rate}分利</span><span>📅 到期 ${fmtDateCN(d.dueDate)}</span><span>💰 总息${fmtMoney(calcTotalInterest(d))}</span>`;
+    } else {
+      const paid = (d.payments||[]).reduce((s,p)=>s+(p.amount||0),0);
+      metaHTML = `<span>📌 不定期</span><span>💰 已还${fmtMoney(paid)}</span>`;
+    }
+
+    let statusHTML = `<span class="tag ${st}">${stText}</span>`;
+    if (st === 'danger' || st === 'warn'){
+      statusHTML += ` <span style="color:var(--red);font-size:12px;font-weight:600;">⚠ 未收${fmtMoney(unpaidInt)}</span>`;
+    }
+    if (st === 'soon' && nextPay){
+      statusHTML += ` <span style="color:var(--gold);font-size:12px;">📅 ${fmtDateCN(fmtYMD(nextPay))}</span>`;
+    }
+
+    const actionsHTML = isClosed ? '' : `
+      <div class="quick-actions">
+        <button class="qa-btn pay" onclick="event.stopPropagation();openQuickPayFor('${d.id}')">✅ 标记付息</button>
+        <button class="qa-btn comm" onclick="event.stopPropagation();openCommLogFor('${d.id}')">💬 催收沟通</button>
+        <button class="qa-btn detail" onclick="event.stopPropagation();openDetail('${d.id}')">📋 详情</button>
+      </div>`;
+
+    return `
+      <div class="debt-card" onclick="openDetail('${d.id}')">
+        <div class="left-line ${st}"></div>
+        <div class="main-row">
+          <div>
+            <span class="name">${esc(d.name)}</span>
+            <span style="font-size:11px;color:var(--text2);margin-left:6px;">${modeLabel}</span>
+          </div>
+          <span class="principal">${fmtMoney(d.amount)}</span>
+        </div>
+        ${d.title ? `<div class="purpose">${esc(d.title)}</div>` : ''}
+        <div class="meta-row">${metaHTML}</div>
+        <div class="status-row">${statusHTML}</div>
+        ${actionsHTML}
+      </div>`;
+  }).join('');
+}
+
+// ============================================
+// 详情页渲染
+// ============================================
+function renderDetail(d){
+  document.getElementById('dName').innerHTML = '👤 ' + esc(d.name) + ' <span class="mode-badge">' + (d.repaymentMode==='monthly'?'按月付息':d.repaymentMode==='bullet'?'到期一次性':'不定期') + '</span>';
+  document.getElementById('dPurpose').textContent = d.title || '';
+  document.getElementById('dAmount').textContent = fmtMoney(d.amount);
+
+  const monthlyInt = calcMonthlyInterest(d);
+  const unpaidInt = calcUnpaidInterest(d);
+  const unpaidPeriods = calcUnpaidPeriods(d);
+  const totalPeriods = calcTotalPeriods(d);
+  const overdueDays = getOverdueDays(d);
+  const nextPay = getNextPayDate(d);
+  const st = getDebtStatus(d);
+
+  let calcHTML = '';
+  if (d.repaymentMode === 'monthly'){
+    calcHTML = `
+      <div class="item"><div class="v" style="color:var(--gold);">${fmtMoney(monthlyInt)}</div><div class="l">月利息(${d.rate}分利)</div></div>
+      <div class="item"><div class="v" style="color:var(--red);">${fmtMoney(unpaidInt)}</div><div class="l">未收(${unpaidPeriods}期)</div></div>
+      <div class="item"><div class="v">${totalPeriods}</div><div class="l">总计期数</div></div>
+      <div class="item"><div class="v" style="color:var(--green);">${d.paidPeriods||0}</div><div class="l">已付期数</div></div>`;
+  } else if (d.repaymentMode === 'bullet'){
+    const totalInt = calcTotalInterest(d);
+    const received = (d.payments||[]).reduce((s,p)=>s+(p.amount||0),0);
+    calcHTML = `
+      <div class="item"><div class="v" style="color:var(--gold);">${fmtMoney(totalInt)}</div><div class="l">总利息</div></div>
+      <div class="item"><div class="v" style="color:var(--red);">${fmtMoney(Math.max(0,totalInt-received))}</div><div class="l">待收利息</div></div>
+      <div class="item"><div class="v" style="color:var(--green);">${fmtMoney(received)}</div><div class="l">已收利息</div></div>
+      <div class="item"><div class="v">${fmtMoney(d.amount+totalInt)}</div><div class="l">本息合计</div></div>`;
+  } else {
+    const received = (d.payments||[]).reduce((s,p)=>s+(p.amount||0),0);
+    calcHTML = `
+      <div class="item"><div class="v" style="color:var(--red);">${fmtMoney(Math.max(0,(d.amount||0)-received))}</div><div class="l">待还金额</div></div>
+      <div class="item"><div class="v" style="color:var(--green);">${fmtMoney(received)}</div><div class="l">已还金额</div></div>
+      <div class="item"><div class="v">${(d.payments||[]).length}</div><div class="l">还款次数</div></div>
+      <div class="item"><div class="v">${fmtMoney(d.amount)}</div><div class="l">本金</div></div>`;
+  }
+  document.getElementById('dCalc').innerHTML = calcHTML;
+
+  let statusHTML = '';
+  if (d.repaymentMode === 'monthly'){
+    statusHTML = `
+      <div>📅 每月 <strong>${d.payDay}号</strong> 付息</div>
+      <div>📅 起息日：<strong>${fmtDateCN(d.startDate)}</strong></div>
+      <div>📅 下次付息：<strong>${nextPay ? fmtDateCN(fmtYMD(nextPay)) : '—'}</strong></div>`;
+  } else if (d.repaymentMode === 'bullet'){
+    statusHTML = `
+      <div>📅 起息日：<strong>${fmtDateCN(d.startDate)}</strong></div>
+      <div>📅 到期日：<strong>${fmtDateCN(d.dueDate)}</strong></div>`;
+  } else {
+    statusHTML = `<div>📌 不定期还款，按实际收款记录</div>`;
+  }
+  statusHTML += `
+    <div style="margin-top:4px;">
+      <span class="tag ${st}">${getStatusText(d)}</span>
+      ${overdueDays > 0 ? ` <span style="color:var(--red);font-weight:600;">⚠ 最早逾期 ${overdueDays} 天</span>` : ''}
+    </div>`;
+
+  if (d.status === 'closed'){
+    statusHTML += `<div style="margin-top:4px;color:var(--text2);">📦 已于 ${fmtDateCN(d.closedDate || '')} 结清归档</div>`;
+  }
+  document.getElementById('dStatus').innerHTML = statusHTML;
+
+  // 备注
+  const notesBlock = document.getElementById('dNotesBlock');
+  if (d.notes){ notesBlock.style.display=''; document.getElementById('dNotes').textContent = d.notes; }
+  else { notesBlock.style.display='none'; }
+
+  // 照片
+  const photosBlock = document.getElementById('dPhotosBlock');
+  const photosDiv = document.getElementById('dPhotos');
+  if ((d.photos||[]).length > 0){
+    photosBlock.style.display='';
+    photosDiv.innerHTML = (d.photos||[]).map((p,i) => `<img class="photo-thumb" src="${p}" onclick="event.stopPropagation();viewPhoto('${d.id}',${i})">`).join('')
+      + `<div class="photo-add" onclick="event.stopPropagation();addPhoto('${d.id}')">+</div>`;
+  } else {
+    photosBlock.style.display='';
+    photosDiv.innerHTML = `<div class="photo-add" onclick="event.stopPropagation();addPhoto('${d.id}')">+ 添加照片</div>`;
+  }
+
+  // 时间线
+  renderTimeline(d);
+
+  // 按钮
+  const markBtn = document.getElementById('dMarkPaidBtn');
+  const remindBtn = document.getElementById('dRemindBtn');
+  const closeBtn = document.getElementById('dCloseBtn');
+  if (d.status === 'closed'){
+    markBtn.style.display = 'none';
+    closeBtn.textContent = '🔄 重新激活';
+    remindBtn.style.display = 'none';
+  } else {
+    markBtn.style.display = '';
+    remindBtn.style.display = '';
+    closeBtn.textContent = '📦 结清归档';
+  }
+}
+
+function renderTimeline(d){
+  const container = document.getElementById('dTimeline');
+  const items = [];
+
+  // 应付记录（monthly 模式）
+  if (d.repaymentMode === 'monthly'){
+    const totalPeriods = calcTotalPeriods(d);
+    for (let i = totalPeriods; i >= 1; i--){
+      const first = getFirstPayDate(d);
+      if (!first) continue;
+      const payDay = Math.min(28, parseInt(d.payDay) || 1);
+      const dueDate = addMonths(first, i - 1);
+      dueDate.setDate(Math.min(payDay, new Date(dueDate.getFullYear(), dueDate.getMonth()+1, 0).getDate()));
+      const paid = i <= (d.paidPeriods || 0);
+      const payment = (d.payments||[]).find(p => p.periodNumber === i);
+      if (paid || payment){
+        const actualDate = payment ? payment.date : fmtYMD(dueDate);
+        const delayed = payment ? payment.delayedDays || 0 : 0;
+        items.push({
+          date: actualDate, sortDate: actualDate,
+          icon: '💰', text: `收到第${i}期利息 ${fmtMoney(calcMonthlyInterest(d))}` + (delayed > 0 ? ` — <span class="t-delay">延期${delayed}天</span>` : ' — <span style="color:var(--green);">准时</span>'),
+          type: 'payment'
+        });
+      } else if (dueDate <= today()){
+        items.push({
+          date: fmtYMD(dueDate), sortDate: fmtYMD(dueDate),
+          icon: '⚠️', text: `第${i}期应付 ${fmtMoney(calcMonthlyInterest(d))} — <span style="color:var(--red);">未付·逾期${daysBetween(dueDate, today())}天</span>`,
+          type: 'due'
+        });
+      } else {
+        items.push({
+          date: fmtYMD(dueDate), sortDate: fmtYMD(dueDate),
+          icon: '📅', text: `第${i}期应付 ${fmtMoney(calcMonthlyInterest(d))} — <span style="color:var(--text2);">待付</span>`,
+          type: 'due'
+        });
+      }
+    }
+  }
+
+  // 还款记录（非monthly模式或额外记录）
+  if (d.repaymentMode !== 'monthly'){
+    (d.payments||[]).forEach(p => {
+      items.push({
+        date: p.date, sortDate: p.date,
+        icon: '💰', text: `收款 ${fmtMoney(p.amount||0)}` + (p.notes ? ` — ${esc(p.notes)}` : '') + (p.delayedDays > 0 ? ` — <span class="t-delay">延期${p.delayedDays}天</span>` : ''),
+        type: 'payment'
+      });
+    });
+  }
+
+  // 沟通记录
+  (d.commLog||[]).forEach(c => {
+    const icon = TYPE_ICONS[c.type] || '📝';
+    const label = TYPE_LABELS[c.type] || c.type;
+    const outcome = c.outcome ? ` [${OUTCOME_LABELS[c.outcome]||c.outcome}]` : '';
+    items.push({
+      date: c.date, sortDate: c.date,
+      icon: icon, text: `${label}${outcome}` + (c.content ? `<br><span style="color:var(--text2);">"${esc(c.content)}"</span>` : ''),
+      type: 'comm'
+    });
+  });
+
+  // 排序：最新在前
+  items.sort((a,b) => b.sortDate.localeCompare(a.sortDate));
+
+  if (items.length === 0){
+    container.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:16px;">暂无记录</div>';
+    return;
+  }
+
+  container.innerHTML = items.map(it => `
+    <div class="timeline-item">
+      <div class="t-icon">${it.icon}</div>
+      <div class="t-content">
+        <div class="t-date">${fmtDateCN(it.date)}</div>
+        <div class="t-text">${it.text}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================
+// 全局刷新
+// ============================================
+function refreshAll(){
+  renderAlert();
+  renderSummary();
+  renderList();
+  if (detailId){
+    const d = debts.find(x => x.id === detailId);
+    if (d) renderDetail(d);
+  }
+}
+
+// ============================================
+// 筛选
+// ============================================
+function setFilter(f, el){
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderList();
+}
+
+function scrollToAlerts(){
+  setFilter('soon', document.querySelector('[data-filter="soon"]'));
+}
+
+// ============================================
+// 表单 & 弹窗控制
+// ============================================
+function showModal(id){ document.getElementById(id).classList.add('show'); document.body.style.overflow='hidden'; }
+function hideModal(id){ document.getElementById(id).classList.remove('show'); document.body.style.overflow=''; }
+
+function openAddModal(){
+  editingId = null; detailId = null;
+  selectedMode = 'monthly';
+  document.getElementById('formTitle').textContent = '添加债务';
+  document.getElementById('deleteBtn').style.display = 'none';
+  document.getElementById('fPhotoGroup').style.display = 'none';
+  document.getElementById('fPhotos').innerHTML = '';
+  clearForm();
+  updateModeUI();
+  showModal('formModal');
+}
+
+function clearForm(){
+  document.getElementById('fName').value = '';
+  document.getElementById('fTitle').value = '';
+  document.getElementById('fAmount').value = '';
+  document.getElementById('fRate').value = '1';
+  document.getElementById('fStartDate').value = fmtYMD(today());
+  document.getElementById('fPayDay').value = '1';
+  document.getElementById('fDueDate').value = '';
+  document.getElementById('fPaidMonths').value = '0';
+  document.getElementById('fNotes').value = '';
+}
+
+function selectMode(mode, el){
+  selectedMode = mode;
+  document.querySelectorAll('#modeSelector .mode-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  updateModeUI();
+}
+
+function updateModeUI(){
+  document.getElementById('fMonthlyFields').style.display = selectedMode === 'monthly' ? '' : 'none';
+  document.getElementById('fBulletFields').style.display = selectedMode === 'bullet' ? '' : 'none';
+  document.getElementById('fRateGroup').style.display = selectedMode === 'irregular' ? 'none' : '';
+}
+
+function openEdit(id){
+  const d = debts.find(x => x.id === id);
+  if (!d) return;
+  editingId = id; detailId = null;
+  selectedMode = d.repaymentMode || 'monthly';
+  document.getElementById('formTitle').textContent = '编辑债务';
+  document.getElementById('deleteBtn').style.display = 'block';
+  document.getElementById('fName').value = d.name;
+  document.getElementById('fTitle').value = d.title || '';
+  document.getElementById('fAmount').value = d.amount;
+  document.getElementById('fRate').value = d.rate || 0;
+  document.getElementById('fStartDate').value = d.startDate || '';
+  document.getElementById('fPayDay').value = d.payDay || 1;
+  document.getElementById('fDueDate').value = d.dueDate || '';
+  document.getElementById('fPaidMonths').value = d.paidPeriods || 0;
+  document.getElementById('fNotes').value = d.notes || '';
+  updateModeUI();
+  // 照片
+  document.getElementById('fPhotoGroup').style.display = '';
+  renderEditPhotos(d);
+  closeDetailModal();
+  showModal('formModal');
+}
+
+function renderEditPhotos(d){
+  const div = document.getElementById('fPhotos');
+  div.innerHTML = (d.photos||[]).map((p,i) => `
+    <div style="position:relative;display:inline-block;">
+      <img class="photo-thumb" src="${p}" onclick="viewPhoto('${d.id}',${i})">
+      <button onclick="event.stopPropagation();removePhoto('${d.id}',${i})" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:12px;cursor:pointer;line-height:22px;text-align:center;">✕</button>
+    </div>
+  `).join('') + `<div class="photo-add" onclick="addPhoto('${d.id}')">+</div>`;
+}
+
+function saveDebt(){
+  const name = document.getElementById('fName').value.trim();
+  const amount = parseFloat(document.getElementById('fAmount').value) || 0;
+  const rate = parseFloat(document.getElementById('fRate').value) || 0;
+  const startDate = document.getElementById('fStartDate').value;
+  const payDay = parseInt(document.getElementById('fPayDay').value) || 1;
+  const dueDate = document.getElementById('fDueDate').value;
+  const paidPeriods = parseInt(document.getElementById('fPaidMonths').value) || 0;
+  const title = document.getElementById('fTitle').value.trim();
+  const notes = document.getElementById('fNotes').value.trim();
+
+  if (!name) { toast('请填写欠款人姓名', true); return; }
+  if (amount <= 0) { toast('请填写有效的本金金额', true); return; }
+  if (selectedMode === 'monthly' && !startDate) { toast('请设置起息日期', true); return; }
+  if (selectedMode === 'bullet' && !dueDate) { toast('请设置到期日期', true); return; }
+
+  const existing = editingId ? debts.find(x => x.id === editingId) : null;
+  const data = {
+    id: editingId || 'd_' + Date.now(),
+    name, amount, rate, startDate,
+    payDay: Math.min(28, Math.max(1, payDay)),
+    dueDate,
+    paidPeriods,
+    title, notes,
+    repaymentMode: selectedMode,
+    status: existing ? existing.status : 'active',
+    payments: existing ? (existing.payments || []) : [],
+    commLog: existing ? (existing.commLog || []) : [],
+    photos: existing ? (existing.photos || []) : [],
+    createdAt: existing ? (existing.createdAt || new Date().toISOString()) : new Date().toISOString()
+  };
+
+  if (editingId){
+    const idx = debts.findIndex(x => x.id === editingId);
+    if (idx >= 0) debts[idx] = data;
+  } else {
+    debts.push(data);
+  }
+
+  save();
+  closeFormModal();
+  refreshAll();
+  toast(editingId ? '已更新 ✅' : '已添加 ✅');
+  editingId = null;
+}
+
+function confirmDelete(){
+  const d = debts.find(x => x.id === editingId);
+  document.getElementById('confirmTitle').textContent = '⚠️ 确认删除';
+  document.getElementById('confirmMsg').textContent = `确定要删除「${esc(d?.name||'')}」的债务记录吗？此操作不可恢复。`;
+  confirmCallback = function(){
+    debts = debts.filter(x => x.id !== editingId);
+    save();
+    closeConfirm();
+    closeFormModal();
+    refreshAll();
+    toast('已删除');
+    editingId = null;
+  };
+  showConfirm();
+}
+
+function closeFormModal(){ hideModal('formModal'); editingId = null; }
+
+// ============================================
+// 详情弹窗
+// ============================================
+function openDetail(id){
+  const d = debts.find(x => x.id === id);
+  if (!d) return;
+  detailId = id;
+  renderDetail(d);
+  showModal('detailModal');
+}
+
+function closeDetailModal(){ hideModal('detailModal'); detailId = null; }
+function editFromDetail(){ if (detailId) openEdit(detailId); }
+
+// ============================================
+// 快捷付息
+// ============================================
+function openQuickPayFor(id){ quickPayDebtId = id; openQuickPayModal(); }
+function openQuickPayModal(){
+  if (!quickPayDebtId && detailId) quickPayDebtId = detailId;
+  const d = debts.find(x => x.id === quickPayDebtId);
+  if (!d) return;
+  if (d.status === 'closed') { toast('该笔已结清', true); return; }
+
+  const nextPay = getNextPayDate(d);
+  const expectedDate = nextPay ? fmtYMD(nextPay) : '';
+  const now = fmtYMD(today());
+  document.getElementById('qpActualDate').value = now;
+
+  let infoHTML = '';
+  if (d.repaymentMode === 'monthly'){
+    const nextPeriod = (d.paidPeriods || 0) + 1;
+    const monthlyInt = calcMonthlyInterest(d);
+    infoHTML = `
+      <div>👤 <strong>${esc(d.name)}</strong></div>
+      <div>📅 第 <strong>${nextPeriod}</strong> 期 · 应付日期 <strong>${fmtDateCN(expectedDate)}</strong></div>
+      <div>💰 应付金额 <strong style="color:var(--gold);">${fmtMoney(monthlyInt)}</strong></div>`;
+  } else if (d.repaymentMode === 'bullet'){
+    const remaining = calcUnpaidInterest(d);
+    infoHTML = `
+      <div>👤 <strong>${esc(d.name)}</strong></div>
+      <div>📅 到期日 <strong>${fmtDateCN(d.dueDate)}</strong></div>
+      <div>💰 待收 <strong style="color:var(--red);">${fmtMoney(remaining)}</strong></div>`;
+  } else {
+    const remaining = calcUnpaidInterest(d);
+    infoHTML = `
+      <div>👤 <strong>${esc(d.name)}</strong></div>
+      <div>💰 待还 <strong style="color:var(--red);">${fmtMoney(remaining)}</strong></div>`;
+  }
+  document.getElementById('qpInfo').innerHTML = infoHTML;
+  document.getElementById('qpNotes').value = '';
+
+  // 延期检测
+  updateDelayDisplay(expectedDate, now);
+
+  showModal('quickPayModal');
+}
+
+function updateDelayDisplay(expectedDate, actualDate){
+  if (!expectedDate) { document.getElementById('qpDelayGroup').style.display = 'none'; return; }
+  const exp = dateFromStr(expectedDate);
+  const act = dateFromStr(actualDate);
+  if (!exp || !act) { document.getElementById('qpDelayGroup').style.display = 'none'; return; }
+  const delay = daysBetween(exp, act);
+  if (delay > 0){
+    document.getElementById('qpDelayGroup').style.display = '';
+    document.getElementById('qpDelayDays').textContent = delay + ' 天';
+  } else {
+    document.getElementById('qpDelayGroup').style.display = 'none';
+  }
+}
+
+// 监听实际日期变化，重新计算延期
+document.addEventListener('DOMContentLoaded', function(){
+  document.getElementById('qpActualDate').addEventListener('change', function(){
+    const d = debts.find(x => x.id === quickPayDebtId);
+    if (!d) return;
+    const nextPay = getNextPayDate(d);
+    updateDelayDisplay(nextPay ? fmtYMD(nextPay) : '', this.value);
+  });
+});
+
+function confirmMarkPaid(){
+  const d = debts.find(x => x.id === quickPayDebtId);
+  if (!d) return;
+  const actualDate = document.getElementById('qpActualDate').value || fmtYMD(today());
+  const notes = document.getElementById('qpNotes').value.trim();
+  const nextPay = getNextPayDate(d);
+  const expectedDateStr = nextPay ? fmtYMD(nextPay) : '';
+  const exp = dateFromStr(expectedDateStr);
+  const act = dateFromStr(actualDate);
+  const delayedDays = (exp && act) ? Math.max(0, daysBetween(exp, act)) : 0;
+
+  const amount = d.repaymentMode === 'monthly' ? calcMonthlyInterest(d) : (d.repaymentMode === 'bullet' ? calcUnpaidInterest(d) : parseFloat(prompt('收款金额：')||'0'));
+
+  if (amount <= 0) { toast('请输入有效金额', true); return; }
+
+  const periodNumber = d.repaymentMode === 'monthly' ? (d.paidPeriods || 0) + 1 : null;
+
+  d.payments = d.payments || [];
+  d.payments.push({
+    id: 'p_' + Date.now(),
+    date: actualDate,
+    amount: amount,
+    periodNumber: periodNumber,
+    expectedDate: expectedDateStr,
+    delayedDays: delayedDays,
+    notes: notes
+  });
+
+  if (d.repaymentMode === 'monthly'){
+    d.paidPeriods = Math.max(0, (d.paidPeriods || 0) + 1);
+  }
+
+  save();
+  closeQuickPayModal();
+  if (detailId === quickPayDebtId) { renderDetail(d); }
+  refreshAll();
+  const delayMsg = delayedDays > 0 ? ` (延期${delayedDays}天)` : '';
+  toast(`已标记收款 ${fmtMoney(amount)} ✅${delayMsg}`);
+  quickPayDebtId = null;
+}
+
+function closeQuickPayModal(){ hideModal('quickPayModal'); quickPayDebtId = null; }
+
+// ============================================
+// 沟通日志
+// ============================================
+function openCommLogFor(id){ commLogDebtId = id; openCommLogModal(); }
+function openCommLogModal(){
+  if (!commLogDebtId && detailId) commLogDebtId = detailId;
+  commLogType = 'call';
+  document.querySelectorAll('#commTypeSelector .mode-opt').forEach(o => o.classList.remove('selected'));
+  document.querySelector('#commTypeSelector .mode-opt[data-type="call"]').classList.add('selected');
+  document.getElementById('commContent').value = '';
+  document.getElementById('commOutcome').value = 'promised';
+  showModal('commLogModal');
+}
+
+function selectCommType(type, el){
+  commLogType = type;
+  document.querySelectorAll('#commTypeSelector .mode-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function saveCommLog(){
+  const d = debts.find(x => x.id === commLogDebtId);
+  if (!d) return;
+  const content = document.getElementById('commContent').value.trim();
+  if (!content) { toast('请填写沟通内容', true); return; }
+  const outcome = document.getElementById('commOutcome').value;
+  d.commLog = d.commLog || [];
+  d.commLog.push({
+    id: 'c_' + Date.now(),
+    date: fmtYMD(today()),
+    type: commLogType,
+    outcome: outcome,
+    content: content
+  });
+  save();
+  closeCommLogModal();
+  if (detailId === commLogDebtId) { renderDetail(d); }
+  refreshAll();
+  toast('沟通记录已保存 💬');
+  commLogDebtId = null;
+}
+
+function closeCommLogModal(){ hideModal('commLogModal'); commLogDebtId = null; }
+
+// ============================================
+// 结清/激活
+// ============================================
+function toggleCloseDebt(){
+  if (!detailId) return;
+  const d = debts.find(x => x.id === detailId);
+  if (!d) return;
+  if (d.status === 'closed'){
+    d.status = 'active';
+    d.closedDate = null;
+    save();
+    renderDetail(d);
+    refreshAll();
+    toast('已重新激活 🔄');
+  } else {
+    document.getElementById('confirmTitle').textContent = '📦 确认结清';
+    document.getElementById('confirmMsg').textContent = `确定「${esc(d.name)}」已全部还清并归档吗？\n归档后将从主列表隐藏。`;
+    confirmCallback = function(){
+      d.status = 'closed';
+      d.closedDate = fmtYMD(today());
+      save();
+      closeConfirm();
+      renderDetail(d);
+      refreshAll();
+      toast('已归档 📦');
+    };
+    showConfirm();
+  }
+}
+
+// ============================================
+// 日历 ICS 生成
+// ============================================
+function genCalendarForDetail(){
+  if (!detailId) return;
+  const d = debts.find(x => x.id === detailId);
+  if (!d) return;
+  generateICS(d);
+}
+
+function generateICS(debt){
+  const nextPay = getNextPayDate(debt);
+  if (!nextPay) { toast('请先设置日期信息', true); return; }
+
+  const pad = n => String(n).padStart(2,'0');
+  const y = nextPay.getFullYear();
+  const m = pad(nextPay.getMonth() + 1);
+  const day = pad(nextPay.getDate());
+  const dtstart = `${y}${m}${day}`;
+  const now = new Date().toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+
+  const monthlyInt = calcMonthlyInterest(debt);
+  const title = `💰 ${debt.name} 应付利息 ${fmtMoney(monthlyInt)}`;
+  const desc = [
+    `欠款人：${debt.name}`,
+    `本金：${fmtMoney(debt.amount)}`,
+    debt.repaymentMode === 'monthly' ? `月利息：${fmtMoney(monthlyInt)} (${debt.rate}分利)` : '',
+    debt.repaymentMode === 'monthly' ? `每月${debt.payDay}号付息` : `到期日：${fmtDateCN(debt.dueDate)}`,
+    debt.notes ? `备注：${debt.notes}` : '',
+    '---',
+    '📌 提醒：请在付息日前一天确认对方是否准备付款'
+  ].filter(Boolean).join('\\n');
+
+  const rrule = debt.repaymentMode === 'monthly' ? `RRULE:FREQ=MONTHLY` : '';
+
+  const ics = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//DebtTrackerPro//CN',
+    'BEGIN:VEVENT',
+    `DTSTART;VALUE=DATE:${dtstart}`,
+    `DTEND;VALUE=DATE:${dtstart}`,
+    rrule,
+    `SUMMARY:${title}`,
+    `DESCRIPTION:${desc}`,
+    `DTSTAMP:${now}`,
+    'BEGIN:VALARM',
+    'TRIGGER:-P1DT9H',  // 提前1天上午9点提醒
+    'ACTION:DISPLAY',
+    `DESCRIPTION:🔔 明天 ${debt.name} 该付利息了！${fmtMoney(monthlyInt)}`,
+    'END:VALARM',
+    'END:VEVENT','END:VCALENDAR'
+  ].filter(Boolean).join('\r\n');
+
+  const blob = new Blob([ics], {type: 'text/calendar;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${debt.name}_利息提醒${debt.repaymentMode==='monthly'?'_每月'+debt.payDay+'号':''}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('📅 日历文件已下载\n用"文件"App打开即可导入');
+}
+
+// 一键生成所有债务的日历提醒
+function generateAllICS(){
+  const active = debts.filter(d => d.status !== 'closed');
+  if (active.length === 0) { toast('没有活跃的债务记录', true); return; }
+
+  const pad = n => String(n).padStart(2,'0');
+  const now = new Date().toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+  let events = [];
+
+  active.forEach(debt => {
+    const nextPay = getNextPayDate(debt);
+    if (!nextPay) return;
+    const monthlyInt = calcMonthlyInterest(debt);
+    const y = nextPay.getFullYear();
+    const m = pad(nextPay.getMonth() + 1);
+    const day = pad(nextPay.getDate());
+    const dtstart = `${y}${m}${day}`;
+    const title = `💰 ${debt.name} 付息 ${fmtMoney(monthlyInt)}`;
+    const desc = [
+      `欠款人：${debt.name}`,
+      `本金：${fmtMoney(debt.amount)}`,
+      debt.repaymentMode === 'monthly' ? `月利息：${fmtMoney(monthlyInt)} (${debt.rate}分利)` : '',
+      debt.repaymentMode === 'monthly' ? `每月${debt.payDay}号付息` : `到期日：${fmtDateCN(debt.dueDate)}`,
+      debt.notes ? `备注：${debt.notes}` : ''
+    ].filter(Boolean).join('\\n');
+
+    const rrule = debt.repaymentMode === 'monthly' ? `RRULE:FREQ=MONTHLY` : '';
+    events.push([
+      'BEGIN:VEVENT',
+      `DTSTART;VALUE=DATE:${dtstart}`,
+      `DTEND;VALUE=DATE:${dtstart}`,
+      rrule,
+      `SUMMARY:${title}`,
+      `DESCRIPTION:${desc}`,
+      `DTSTAMP:${now}`,
+      'BEGIN:VALARM',
+      'TRIGGER:-P1DT9H',
+      'ACTION:DISPLAY',
+      `DESCRIPTION:🔔 明天 ${debt.name} 该付利息了！${fmtMoney(monthlyInt)}`,
+      'END:VALARM',
+      'END:VEVENT'
+    ].filter(Boolean).join('\r\n'));
+  });
+
+  if (events.length === 0) { toast('所有债务尚未设置日期', true); return; }
+
+  const ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//DebtTrackerPro//CN',
+    ...events,
+    'END:VCALENDAR'
+  ].join('\r\n');
+
+  const todayStr = fmtYMD(today());
+  const blob = new Blob([ics], {type: 'text/calendar;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `债管家_全部提醒_${todayStr}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  const hasMonthly = active.some(d => d.repaymentMode === 'monthly');
+  toast(`📅 已生成 ${events.length} 条提醒\n用"文件"App打开 → 自动导入日历` + (hasMonthly ? '\n月付类会自动每月循环' : ''));
+}
+
+// ============================================
+// 催收文案复制
+// ============================================
+function copyReminderText(){
+  if (!detailId) return;
+  const d = debts.find(x => x.id === detailId);
+  if (!d) return;
+  const monthlyInt = calcMonthlyInterest(d);
+  const unpaidInt = calcUnpaidInterest(d);
+  const overdue = getOverduePeriods(d);
+  const overdueDays = getOverdueDays(d);
+  const nextPay = getNextPayDate(d);
+
+  let text = `【催收提醒】${d.name}你好，`;
+  if (d.repaymentMode === 'monthly'){
+    text += `根据约定，你应在每月${d.payDay}号支付利息${fmtMoney(monthlyInt)}。`;
+    if (overdue > 0) text += `目前已有${overdue}期（${fmtMoney(unpaidInt)}）逾期${overdueDays}天未付，`;
+  } else if (d.repaymentMode === 'bullet'){
+    text += `借款本金${fmtMoney(d.amount)}将于${fmtDateCN(d.dueDate)}到期，`;
+  } else {
+    text += `目前待还金额${fmtMoney(unpaidInt)}，`;
+  }
+  text += `请尽快安排还款，如有困难请提前沟通，谢谢！`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    toast('📋 催收文案已复制，可粘贴到微信');
+  }).catch(() => {
+    toast('复制失败，请手动复制', true);
+  });
+}
+
+// ============================================
+// 照片管理
+// ============================================
+function addPhoto(debtId){
+  editingId = debtId; // 暂存，拍照后处理
+  document.getElementById('cameraInput').click();
+}
+
+function handlePhotoUpload(event){
+  const file = event.target.files[0];
+  if (!file) return;
+  const debtId = editingId || detailId;
+  const d = debts.find(x => x.id === debtId);
+  if (!d) return;
+
+  // 压缩图片
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      const canvas = document.createElement('canvas');
+      const maxW = 800;
+      let w = img.width, h = img.height;
+      if (w > maxW){ h = h * maxW / w; w = maxW; }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const base64 = canvas.toDataURL('image/jpeg', 0.7);
+      d.photos = d.photos || [];
+      d.photos.push(base64);
+      save();
+      if (detailId === debtId) renderDetail(d);
+      if (editingId === debtId) renderEditPhotos(d);
+      refreshAll();
+      toast('照片已保存 📸');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function removePhoto(debtId, idx){
+  const d = debts.find(x => x.id === debtId);
+  if (!d) return;
+  d.photos.splice(idx, 1);
+  save();
+  if (detailId === debtId) renderDetail(d);
+  if (editingId === debtId) renderEditPhotos(d);
+  toast('照片已删除');
+}
+
+function viewPhoto(debtId, idx){
+  const d = debts.find(x => x.id === debtId);
+  if (!d || !d.photos[idx]) return;
+  document.getElementById('photoFullImg').src = d.photos[idx];
+  document.getElementById('photoFullscreen').classList.add('show');
+}
+
+function closePhotoFullscreen(){
+  document.getElementById('photoFullscreen').classList.remove('show');
+}
+
+// ============================================
+// 数据备份
+// ============================================
+function exportData(){
+  const data = JSON.stringify(debts, null, 2);
+  const blob = new Blob([data], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '债管家_备份.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('📤 数据已备份');
+}
+
+function importData(event){
+  const file = event.target.files[0];
+  if (!file) return;
+  document.getElementById('confirmTitle').textContent = '📥 恢复备份';
+  document.getElementById('confirmMsg').textContent = `将从备份文件「${file.name}」恢复数据。当前数据将被覆盖，确定继续？`;
+  confirmCallback = function(){
+    const reader = new FileReader();
+    reader.onload = function(e){
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!Array.isArray(data)) throw new Error('格式错误');
+        debts = data;
+        save();
+        closeConfirm();
+        refreshAll();
+        toast('📥 数据已恢复 (' + debts.length + '笔)');
+      } catch(err){
+        closeConfirm();
+        toast('备份文件格式错误', true);
+      }
+    };
+    reader.readAsText(file);
+  };
+  showConfirm();
+  event.target.value = '';
+}
+
+// ============================================
+// 确认弹窗
+// ============================================
+function showConfirm(){ document.getElementById('confirmDialog').classList.add('show'); }
+function closeConfirm(){ document.getElementById('confirmDialog').classList.remove('show'); confirmCallback = null; }
+document.getElementById('confirmActionBtn').addEventListener('click', function(){
+  if (confirmCallback) confirmCallback();
+});
+
+// ============================================
+// Toast
+// ============================================
+function toast(msg, isErr){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ============================================
+// 事件绑定
+// ============================================
+document.getElementById('formModal').addEventListener('click', function(e){ if (e.target === this) closeFormModal(); });
+document.getElementById('detailModal').addEventListener('click', function(e){ if (e.target === this) closeDetailModal(); });
+document.getElementById('quickPayModal').addEventListener('click', function(e){ if (e.target === this) closeQuickPayModal(); });
+document.getElementById('commLogModal').addEventListener('click', function(e){ if (e.target === this) closeCommLogModal(); });
+document.getElementById('settingsModal').addEventListener('click', function(e){ if (e.target === this) closeSettings(); });
+
+// ============================================
+// Service Worker - 离线缓存（终身可用）
+// ============================================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register(
+    URL.createObjectURL(new Blob([`
+self.addEventListener('install', e => {
+  self.skipWaiting();
+  // 缓存所有页面资源
+  e.waitUntil(
+    caches.open('debt-pro-v1').then(cache => {
+      return cache.addAll([self.location.href]);
+    })
+  );
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(clients.claim());
+});
+self.addEventListener('fetch', e => {
+  // 缓存优先策略：先用缓存，缓存没有才走网络
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      return cached || fetch(e.request).then(resp => {
+        // 把网络请求也缓存下来
+        if (resp.ok) {
+          const clone = resp.clone();
+          caches.open('debt-pro-v1').then(c => c.put(e.request, clone));
+        }
+        return resp;
+      });
+    })
+  );
+});
+    `], {type: 'application/javascript'}))
+  ).catch(() => {});
+}
+
+// ============================================
+// 初始化
+// ============================================
+load();
+refreshAll();
+initCloudSync();
+</script>
+</body>
+</html>
