@@ -660,6 +660,29 @@ let confirmCallback = null;
 function load(){
   try { debts = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
   catch(e) { debts = []; }
+  // 首次使用：预置示例数据
+  if (debts.length === 0) {
+    debts = [
+      {
+        "id": "d_qy_001",
+        "name": "曲杨",
+        "title": "租赁备案 · 乾城A22-2-13西 116平",
+        "amount": 40000,
+        "rate": 5,
+        "startDate": "2026-04-01",
+        "payDay": 1,
+        "paidPeriods": 3,
+        "repaymentMode": "monthly",
+        "notes": "李帅龙出资",
+        "payments": [],
+        "commLog": [],
+        "photos": [],
+        "status": "active",
+        "createdAt": "2026-06-11T00:00:00.000Z"
+      }
+    ];
+    save();
+  }
   // 数据迁移 & 默认值
   debts.forEach(d => {
     d.repaymentMode = d.repaymentMode || 'monthly';
